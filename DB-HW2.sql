@@ -31,6 +31,13 @@ LIMIT 100;
 
 -- optimized query
 
+CREATE INDEX filtered_orders ON orders (order_date, order_id, customer_id, shipping_country);
+
+CREATE INDEX items_in_orders ON order_items (order_id, product_id, quantity, line_total);
+
+CREATE INDEX product_category ON products (product_id, category);
+
+EXPLAIN ANALYZE
 WITH three_months AS (
 	SELECT order_id, customer_id, shipping_country, order_date FROM orders
     WHERE order_date >= CURDATE() - INTERVAL 90 DAY
@@ -48,7 +55,6 @@ SELECT
 FROM three_months tm
 JOIN items i ON i.order_id = tm.order_id
 JOIN products p ON p.product_id = i.product_id
-JOIN customers c ON c.customer_id = tm.customer_id
 GROUP BY tm.shipping_country, p.category
 ORDER BY revenue DESC
 LIMIT 100;
