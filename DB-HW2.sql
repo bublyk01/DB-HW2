@@ -1,4 +1,5 @@
 USE ecommerce_synth;
+DROP DATABASE ecommerce_synth;
 
 SELECT * FROM customers LIMIT 100;
 SELECT COUNT(*) from customers;
@@ -13,6 +14,7 @@ SELECT COUNT(*) from products;
 
 USE `ecommerce_synth`;
 
+EXPLAIN
 SELECT
   o.shipping_country,
   p.category,
@@ -35,26 +37,20 @@ CREATE INDEX filtered_orders ON orders (order_date, order_id, customer_id, shipp
 
 CREATE INDEX items_in_orders ON order_items (order_id, product_id, quantity, line_total);
 
-CREATE INDEX product_category ON products (product_id, category);
-
 EXPLAIN ANALYZE
 WITH three_months AS (
 	SELECT order_id, customer_id, shipping_country, order_date FROM orders
     WHERE order_date >= CURDATE() - INTERVAL 90 DAY
-    ),
-	items AS (
-	SELECT order_id, product_id, quantity, line_total FROM order_items
     )
 SELECT
 	tm.shipping_country,
     p.category,
     COUNT(DISTINCT(tm.order_id)) AS order_quantity,
-    SUM(i.quantity) AS units,
-    SUM(i.line_total) AS revenue,
+    SUM(oi.quantity) AS units,
+    SUM(oi.line_total) AS revenue,
     COUNT(DISTINCT(tm.customer_ID)) AS customers
 FROM three_months tm
-JOIN items i ON i.order_id = tm.order_id
-JOIN products p ON p.product_id = i.product_id
+JOIN order_items oi ON oi.order_id = tm.order_id
+JOIN products p ON p.product_id = oi.product_id
 GROUP BY tm.shipping_country, p.category
-ORDER BY revenue DESC
-LIMIT 100;
+ORDER BY revenue DESC;
